@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Romantasy Title Evaluator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #111; padding: 24px; max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .sub { color: #666; font-size: 13px; margin-bottom: 20px; }
+  .input-row { display: flex; gap: 10px; margin-bottom: 24px; }
+  .input-row input { flex: 1; padding: 12px 16px; border: 1.5px solid #d1d5db; border-radius: 10px; font-size: 15px; outline: none; }
+  .input-row button { padding: 12px 24px; background: #111; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; min-width: 110px; }
+  .input-row button:disabled { background: #d1d5db; cursor: not-allowed; }
+  .loader { text-align: center; padding: 32px; background: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 20px; }
+  .spinner { width: 32px; height: 32px; border: 3px solid #e5e7eb; border-top-color: #111; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error { background: #fee2e2; color: #991b1b; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+  .card { border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.2s; margin-bottom: 14px; background: #fff; }
+  .card.open { background: #f0f9ff; border-color: #2563eb; }
+  .card-head { display: flex; justify-content: space-between; align-items: flex-start; }
+  .card-title { font-weight: 700; font-size: 15px; }
+  .card-author { font-size: 12px; color: #666; margin-top: 2px; }
+  .badge { padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+  .badge-pass { background: #fee2e2; color: #991b1b; }
+  .badge-consider { background: #fef3c7; color: #92400e; }
+  .badge-buy { background: #dcfce7; color: #166534; }
+  .card-stats { display: flex; gap: 12px; margin-top: 10px; font-size: 12px; color: #555; flex-wrap: wrap; }
+  .detail { background: #f9fafb; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 24px; margin-top: 16px; margin-bottom: 14px; }
+  .rec-banner { border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+  .rec-title { font-size: 14px; font-weight: 700; }
+  .rec-note { font-size: 12px; color: #555; margin-top: 2px; line-height: 1.4; }
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; font-size: 12px; color: #555; }
+  .tier-row { display: flex; align-items: center; gap: 10px; margin: 14px 0 16px; flex-wrap: wrap; }
+  .tier-badge { color: #fff; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+  .penalty-badge { background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .pricing-box { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; }
+  .pricing-label { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .pricing-val { font-size: 22px; font-weight: 700; }
+  .pricing-sub { font-size: 11px; color: #999; margin-top: 4px; }
+  .mg-bar-wrap { margin-bottom: 20px; }
+  .mg-bar { position: relative; background: #e5e7eb; border-radius: 8px; height: 22px; overflow: hidden; }
+  .mg-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 8px; transition: width 0.5s; }
+  .mg-labels { display: flex; justify-content: space-between; font-size: 10px; color: #999; margin-top: 3px; }
+  .dim-section { border-top: 1px solid #e5e7eb; padding-top: 18px; }
+  .dim-title { font-size: 13px; font-weight: 700; margin-bottom: 14px; }
+  .dim-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+  .score-label { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+  .score-label span:first-child { font-weight: 600; color: #444; }
+  .score-label span:last-child { font-weight: 700; }
+  .score-track { background: #e5e7eb; border-radius: 6px; height: 8px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 6px; transition: width 0.5s; }
+  .score-tag { font-size: 10px; font-weight: 600; margin-top: 2px; }
+  .dim-box { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+  .dim-box-label { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+  .dim-box-note { font-size: 12px; color: #555; line-height: 1.5; }
+  .flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .flag { padding: 3px 10px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .flag-neg { background: #fee2e2; color: #991b1b; }
+  .flag-pos { background: #dcfce7; color: #166534; }
+  .empty { padding: 32px; background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 12px; text-align: center; color: #999; font-size: 14px; }
+  .empty small { display: block; font-size: 12px; color: #bbb; margin-top: 4px; }
+  details { margin-top: 32px; }
+  summary { font-size: 13px; font-weight: 600; color: #666; cursor: pointer; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { padding: 8px 10px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 700; background: #f3f4f6; }
+  td { padding: 7px 10px; border-bottom: 1px solid #f3f4f6; }
+  .tier-dot { color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<h1>Romantasy Title Evaluator</h1>
+<p class="sub">Enter a book title → auto-evaluates pricing, needgap, adaptation fit & complexity</p>
+
+<div class="input-row">
+  <input id="titleInput" placeholder="Enter a book series title (e.g. A Court of Thorns and Roses)" />
+  <button id="evalBtn" onclick="evaluate()">Evaluate</button>
+</div>
+
+<div id="loader" class="loader" style="display:none">
+  <div class="spinner"></div>
+  <div id="loadMsg" style="font-size:13px;color:#555;font-weight:500"></div>
+</div>
+
+<div id="error" class="error" style="display:none"></div>
+<div id="results"></div>
+
+<div id="emptyState" class="empty">
+  No titles evaluated yet
+  <small>Enter a book series title above to get started</small>
+</div>
+
+<details>
+  <summary>View Pricing Tier Reference</summary>
+  <table>
+    <thead><tr><th>Tier</th><th>GR Ratings</th><th>Trope</th><th>Length</th><th>MG Min</th><th>MG Max</th><th>Rev Min</th><th>Rev Max</th></tr></thead>
+    <tbody id="tierTable"></tbody>
+  </table>
+</details>
+
+<script>
+const TIERS = [
+  {tier:1,grMin:20000,trope:"Needgap",lengthMin:80,mgMin:17500,mgMax:25000,revMin:15,revMax:22},
+  {tier:2,grMin:20000,trope:"Needgap",lengthMin:50,mgMin:12500,mgMax:20000,revMin:15,revMax:22},
+  {tier:3,grMin:20000,trope:"Similar",lengthMin:80,mgMin:10000,mgMax:15000,revMin:15,revMax:22},
+  {tier:4,grMin:20000,trope:"Similar",lengthMin:50,mgMin:10000,mgMax:12500,revMin:15,revMax:22},
+  {tier:5,grMin:5000,trope:"Needgap",lengthMin:80,mgMin:12500,mgMax:20000,revMin:15,revMax:20},
+  {tier:6,grMin:5000,trope:"Needgap",lengthMin:50,mgMin:5000,mgMax:7500,revMin:15,revMax:20},
+  {tier:7,grMin:5000,trope:"Similar",lengthMin:80,mgMin:5000,mgMax:7500,revMin:15,revMax:20},
+  {tier:8,grMin:5000,trope:"Similar",lengthMin:50,mgMin:0,mgMax:1000,revMin:15,revMax:20},
+  {tier:9,grMin:0,trope:"Needgap",lengthMin:0,mgMin:0,mgMax:1000,revMin:15,revMax:20},
+  {tier:10,grMin:0,trope:"Similar",lengthMin:0,mgMin:0,mgMax:0,revMin:15,revMax:20},
+];
+
+const evaluations = [];
+const loadMsgs = ["Searching Goodreads & Amazon...","Analyzing sub-genre & tropes...","Scoring adaptation fit...","Calculating pricing tier..."];
+let loadInterval;
+
+function tierColor(t){return t<=2?"#059669":t<=4?"#0d9488":t<=6?"#2563eb":t<=8?"#7c3aed":"#6b7280";}
+function grBucket(r){return r>=20000?"20,000+":r>=5000?"5,000+":"<5,000";}
+function lenBucket(l){return l>=80?"80+ hrs":l>=50?"50+ hrs":"<50 hrs";}
+function sc(v){return v>=7?"#059669":v>=4?"#d97706":"#dc2626";}
+function fmt(n){return n.toLocaleString();}
+
+function matchTier(gr,trope,len){
+  const grB=gr>=20000?20000:gr>=5000?5000:0, lenB=len>=80?80:len>=50?50:0;
+  let t=TIERS.find(x=>x.grMin===grB&&x.trope===trope&&x.lengthMin===lenB);
+  if(t) return {...t,belowThreshold:false};
+  t=TIERS.find(x=>x.grMin===grB&&x.trope===trope&&x.lengthMin===50);
+  if(t) return {...t,belowThreshold:true};
+  t=TIERS.find(x=>x.grMin===grB&&x.trope===trope);
+  if(t) return {...t,belowThreshold:len<50};
+  return {...TIERS[9],belowThreshold:true};
+}
+
+function calcMG(tier,gr,len,below){
+  let gf=tier.grMin===20000?Math.min((gr-20000)/30000,1):tier.grMin===5000?Math.min((gr-5000)/15000,1):Math.min(gr/5000,1);
+  let lf=tier.lengthMin===80?Math.min((len-80)/40,1):tier.lengthMin===50?Math.min((len-50)/30,1):0.5;
+  return Math.round((tier.mgMin+(tier.mgMax-tier.mgMin)*(gf*0.6+Math.max(lf,0)*0.4))*(below?0.7:1)/250)*250;
+}
+
+function renderTierTable(){
+  document.getElementById("tierTable").innerHTML = TIERS.map(t=>`<tr>
+    <td><span class="tier-dot" style="background:${tierColor(t.tier)}">T${t.tier}</span></td>
+    <td>${t.grMin===0?"<5K":(t.grMin/1000)+"K+"}</td><td>${t.trope}</td>
+    <td>${t.lengthMin===0?"Any":t.lengthMin+"+ hrs"}</td>
+    <td>${t.mgMin===0?(t.mgMax===0?"No MG":"–"):"$"+fmt(t.mgMin)}</td>
+    <td>${t.mgMax===0?"No MG":"$"+fmt(t.mgMax)}</td>
+    <td>${t.revMin}%</td><td>${t.revMax}%</td></tr>`).join("");
+}
+
+function renderResults(){
+  const el = document.getElementById("results");
+  document.getElementById("emptyState").style.display = evaluations.length?"none":"block";
+  el.innerHTML = evaluations.map((ev,i)=>{
+    const d=ev.data, p=ev.pricing, t=p.tier;
+    const rc=d.recommendation==="Strong Buy"?"#166534":d.recommendation==="Consider"?"#92400e":"#991b1b";
+    const rb=d.recommendation==="Strong Buy"?"#dcfce7":d.recommendation==="Consider"?"#fef3c7":"#fee2e2";
+    const bc=d.recommendation==="Strong Buy"?"badge-buy":d.recommendation==="Consider"?"badge-consider":"badge-pass";
+    const noMG=t.mgMin===0&&t.mgMax===0&&p.mg===0;
+    const tc=tierColor(t.tier);
+
+    const dims=[
+      {label:"Needgap",score:d.needgapScore,tag:d.needgapLabel,note:d.needgapNote},
+      {label:"Adaptation Friendliness",score:d.adaptFriendlyScore,tag:d.adaptFriendlyLabel,note:d.adaptFriendlyNote},
+      {label:"Adaptation Complexity",score:d.adaptComplexScore,tag:d.adaptComplexLabel,note:d.adaptComplexNote}
+    ];
+    const shortDims=["Needgap","Adapt","Ease"];
+
+    return `<div class="card ${ev.open?"open":""}" onclick="toggle(${i})">
+      <div class="card-head">
+        <div><div class="card-title">${d.title}</div><div class="card-author">${d.author} · ${d.series}</div></div>
+        <span class="badge ${bc}">${d.recommendation}</span>
+      </div>
+      <div class="card-stats">
+        <span>GR: ${fmt(d.grRatings||0)} (${d.grStars}★)</span>
+        <span>${d.totalHours} hrs</span>
+        <span>${d.subGenre}</span>
+        <span style="color:#ccc">|</span>
+        <span>${shortDims[0]} ${d.needgapScore}/10</span>
+        <span>${shortDims[1]} ${d.adaptFriendlyScore}/10</span>
+        <span>${shortDims[2]} ${d.adaptComplexScore}/10</span>
+      </div>
+    </div>
+    ${ev.open?`<div class="detail">
+      <div class="rec-banner" style="background:${rb};border:1px solid ${rc}33">
+        <span style="font-size:20px">${d.recommendation==="Strong Buy"?"✅":d.recommendation==="Consider"?"⚠️":"🚫"}</span>
+        <div><div class="rec-title" style="color:${rc}">${d.recommendation}</div><div class="rec-note">${d.recommendationNote}</div></div>
+      </div>
+      <div class="meta-grid">
+        <div><b>Author:</b> ${d.author}</div><div><b>Series:</b> ${d.series}</div>
+        <div><b>Sub-genre:</b> ${d.subGenre}</div><div><b>Publisher:</b> ${d.publisher}</div>
+        <div><b>Tropes:</b> ${(d.tropes||[]).join(", ")}</div><div><b>Classification:</b> ${d.tropeClassification}</div>
+      </div>
+      <div class="tier-row">
+        <span class="tier-badge" style="background:${tc}">Tier ${t.tier}${t.belowThreshold?"*":""}</span>
+        <span style="font-size:13px;color:#666">GR ${grBucket(p.gr)} · ${d.tropeClassification} · ${lenBucket(p.len)}</span>
+        ${t.belowThreshold?'<span class="penalty-badge">30% MG penalty</span>':""}
+      </div>
+      <div class="pricing-grid">
+        <div class="pricing-box">
+          <div class="pricing-label">Minimum Guarantee</div>
+          ${noMG?'<div class="pricing-val" style="color:#6b7280">No MG</div>':`<div class="pricing-val">$${fmt(p.mg)}</div><div class="pricing-sub">Tier range: $${fmt(t.mgMin)} – $${fmt(t.mgMax)}</div>`}
+        </div>
+        <div class="pricing-box">
+          <div class="pricing-label">Revenue Share</div>
+          <div class="pricing-val">${t.revMin}%</div>
+          <div class="pricing-sub">Start here · Ceiling: ${t.revMax}%</div>
+        </div>
+      </div>
+      ${!noMG?`<div class="mg-bar-wrap">
+        <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:6px">Predicted MG Position</div>
+        <div class="mg-bar"><div class="mg-fill" style="width:${Math.max(4,(p.mg/t.mgMax)*100)}%;background:linear-gradient(90deg,${tc}88,${tc})"></div></div>
+        <div class="mg-labels"><span>$${fmt(t.mgMin)}</span><span>$${fmt(t.mgMax)}</span></div>
+      </div>`:""}
+      <div class="dim-section">
+        <div class="dim-title">Evaluation Dimensions</div>
+        <div class="dim-grid">
+          ${dims.map((dm,j)=>`<div>
+            <div class="score-label"><span>${shortDims[j]==="Adapt"?"Adapt. Friendly":shortDims[j]==="Ease"?"Adapt. Ease":shortDims[j]}</span><span style="color:${sc(dm.score)}">${dm.score}/10</span></div>
+            <div class="score-track"><div class="score-fill" style="width:${dm.score*10}%;background:${sc(dm.score)}"></div></div>
+            <div class="score-tag" style="color:${sc(dm.score)}">${dm.tag}</div>
+          </div>`).join("")}
+        </div>
+        ${dims.map(dm=>`<div class="dim-box">
+          <div class="dim-box-label" style="color:${sc(dm.score)}">${dm.label}</div>
+          <div class="dim-box-note">${dm.note}</div>
+        </div>`).join("")}
+      </div>
+      <div class="flags">
+        ${(d.flags||[]).map(f=>{
+          const pos=f.toLowerCase().includes("strong")||f.toLowerCase().includes("high demand")||f.toLowerCase().includes("self-pub")||f.toLowerCase().includes("long series");
+          return `<span class="flag ${pos?"flag-pos":"flag-neg"}">${f}</span>`;
+        }).join("")}
+      </div>
+    </div>`:""}`;
+  }).join("");
+}
+
+function toggle(i){
+  evaluations.forEach((e,j)=>e.open=(j===i&&!e.open));
+  renderResults();
+}
+
+async function evaluate(){
+  const input=document.getElementById("titleInput");
+  const title=input.value.trim();
+  if(!title) return;
+
+  const btn=document.getElementById("evalBtn");
+  btn.disabled=true; btn.textContent="Evaluating...";
+  document.getElementById("loader").style.display="block";
+  document.getElementById("error").style.display="none";
+
+  let mi=0;
+  document.getElementById("loadMsg").textContent=loadMsgs[0];
+  loadInterval=setInterval(()=>{mi=(mi+1)%loadMsgs.length;document.getElementById("loadMsg").textContent=loadMsgs[mi];},3000);
+
+  try{
+    const res=await fetch("/api/evaluate",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({title})
+    });
+    const parsed=await res.json();
+    if(parsed.error) throw new Error(parsed.error);
+
+    const gr=parsed.grRatings||0, len=parsed.totalHours||0, trope=parsed.tropeClassification||"Similar";
+    const tier=matchTier(gr,trope,len);
+    const mg=calcMG(tier,gr,len,tier.belowThreshold);
+    evaluations.unshift({data:parsed,pricing:{tier,mg,rev:{offer:tier.revMin,max:tier.revMax},gr,len},open:true});
+    evaluations.forEach((e,j)=>{if(j>0)e.open=false;});
+    input.value="";
+    renderResults();
+  } catch(e){
+    const el=document.getElementById("error");
+    el.textContent="Evaluation failed — "+e.message;
+    el.style.display="block";
+  } finally {
+    clearInterval(loadInterval);
+    document.getElementById("loader").style.display="none";
+    btn.disabled=false; btn.textContent="Evaluate";
+  }
+}
+
+document.getElementById("titleInput").addEventListener("keydown",e=>{if(e.key==="Enter")evaluate();});
+renderTierTable();
+</script>
+</body>
+</html>
